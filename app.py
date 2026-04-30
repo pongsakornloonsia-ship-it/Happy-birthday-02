@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import date
 from html import escape
 import random
-import plotly.graph_objects as go
+import time
 
 st.set_page_config(
     page_title="Happy Birthday 🎂",
@@ -11,23 +11,26 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# -------------------- DATA --------------------
 today = date.today()
 start_date = date(2024, 2, 14)
 days_together = (today - start_date).days
 
-birthday_this_year = date(today.year, 6, 26)
-next_birthday = birthday_this_year if today <= birthday_this_year else date(today.year + 1, 6, 26)
+birthday_month = 6
+birthday_day = 26
+birthday_this_year = date(today.year, birthday_month, birthday_day)
+next_birthday = birthday_this_year if today <= birthday_this_year else date(today.year + 1, birthday_month, birthday_day)
 days_to_birthday = (next_birthday - today).days
 
 wishes = [
     "สุขสันต์วันเกิดนะเธอ 💖",
-    "ขอให้วันนี้ใจดีกับเธอมาก ๆ",
+    "ขอให้วันนี้เป็นวันที่ดีมาก ๆ",
     "ขอให้ยิ้มได้ทั้งวันเลย",
-    "กินของอร่อยให้เต็มที่นะ",
-    "ขอให้ปีนี้เบา ๆ และดี ๆ",
+    "ขอให้เธอได้กินของอร่อย ๆ",
+    "ขอให้ปีนี้มีแต่เรื่องที่ชอบ",
     "วันนี้เป็นวันของเธอจริง ๆ",
-    "ขอให้เรื่องหนัก ๆ ถอยไปไกล ๆ",
-    "ขอให้ได้เจอแต่เรื่องที่ชอบ",
+    "ขอให้เรื่องหนัก ๆ เบาลงเยอะ ๆ",
+    "ขอให้มีแต่เรื่องน่ารัก ๆ เข้ามา",
 ]
 
 memories = [
@@ -47,8 +50,6 @@ tiny_lines = [
     "ถ้าวันนี้พิเศษ ก็ให้เป็นเธอ",
 ]
 
-modes = ["💗", "🎂", "✨", "🫶", "🌷"]
-
 if "opened" not in st.session_state:
     st.session_state.opened = False
 if "wish_index" not in st.session_state:
@@ -65,9 +66,12 @@ if "secret_open" not in st.session_state:
     st.session_state.secret_open = False
 if "mood" not in st.session_state:
     st.session_state.mood = 64
-if "map_mode" not in st.session_state:
-    st.session_state.map_mode = 0
+if "cover_clicks" not in st.session_state:
+    st.session_state.cover_clicks = 0
+if "typed_done" not in st.session_state:
+    st.session_state.typed_done = False
 
+# -------------------- CSS --------------------
 st.markdown(
     """
     <style>
@@ -335,6 +339,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# -------------------- FLOATING EFFECTS --------------------
 hearts_html = "".join(
     f'<span class="heart" style="left:{random.randint(0,100)}%; '
     f'font-size:{random.randint(16,32)}px; '
@@ -357,24 +362,34 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+def card(title, body):
+    return f"""
+    <div class="glass">
+        <div class="gtitle">{title}</div>
+        <div class="gbody">{body}</div>
+    </div>
+    """
+
+# -------------------- COVER --------------------
 if not st.session_state.opened:
     st.markdown(
         """
         <div class="hero">
             <div class="badge">🎁</div>
-            <div class="title">มีอะไรให้เปิด</div>
-            <div class="subtitle">กดเลย</div>
+            <div class="title">มีของให้เปิด</div>
+            <div class="subtitle">กดตรงนี้</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    if st.button("เปิดของขวัญ"):
+    if st.button("เปิด"):
         st.session_state.opened = True
         st.rerun()
 
     st.stop()
 
+# -------------------- MAIN HERO --------------------
 st.markdown(
     """
     <div class="hero">
@@ -399,6 +414,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# -------------------- ACTION PANEL --------------------
 st.markdown(
     """
     <div class="panel">
@@ -416,23 +432,24 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# -------------------- TABS --------------------
 tab1, tab2, tab3, tab4 = st.tabs(["🎁", "🌍", "💌", "✨"])
 
 with tab1:
     left, right = st.columns([1.1, 0.9])
 
     with left:
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            if st.button("🎀", key="wish_shuffle"):
+        a, b, c = st.columns(3)
+        with a:
+            if st.button("🎀"):
                 st.session_state.wish_index = random.randint(0, len(wishes) - 1)
                 st.session_state.spark_count += 1
-        with c2:
-            if st.button("🕯️", key="add_candle"):
+        with b:
+            if st.button("🕯️"):
                 st.session_state.candles = min(8, st.session_state.candles + 1)
                 st.session_state.spark_count += 1
-        with c3:
-            if st.button("💨", key="blow_candle"):
+        with c:
+            if st.button("💨"):
                 st.session_state.candles = 0
                 st.session_state.gift_open = True
                 st.session_state.spark_count += 1
@@ -450,17 +467,9 @@ with tab1:
             unsafe_allow_html=True,
         )
 
-        st.markdown(
-            f"""
-            <div class="final" style="margin-top:12px; text-align:left;">
-                <h3>{wishes[st.session_state.wish_index]}</h3>
-                <p>{tiny_lines[st.session_state.wish_index % len(tiny_lines)]}</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown(card(wishes[st.session_state.wish_index], tiny_lines[st.session_state.wish_index % len(tiny_lines)]), unsafe_allow_html=True)
 
-        if st.button("✨", key="spark_btn"):
+        if st.button("✨"):
             st.session_state.gift_open = True
             st.session_state.spark_count += 1
             st.snow()
@@ -476,7 +485,7 @@ with tab1:
         )
 
     with right:
-        mode = st.select_slider("", options=modes, value=modes[0], label_visibility="collapsed")
+        mode = st.select_slider("", options=["💗", "🎂", "✨", "🫶", "🌷"], value="💗", label_visibility="collapsed")
         mode_text = {
             "💗": "นุ่ม ๆ",
             "🎂": "วันเกิด",
@@ -485,15 +494,7 @@ with tab1:
             "🌷": "ละมุน",
         }[mode]
 
-        st.markdown(
-            f"""
-            <div class="glass">
-                <div class="gtitle"> {mode} </div>
-                <div class="gbody">{mode_text}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown(card(mode, mode_text), unsafe_allow_html=True)
 
         st.session_state.mood = st.slider(" ", 0, 100, st.session_state.mood, label_visibility="collapsed")
         st.progress(st.session_state.mood / 100)
@@ -515,7 +516,7 @@ with tab1:
             unsafe_allow_html=True,
         )
 
-        if st.button("🫶", key="gift_btn"):
+        if st.button("🫶"):
             st.session_state.gift_open = True
             st.session_state.spark_count += 1
             st.balloons()
@@ -532,73 +533,85 @@ with tab1:
             )
 
 with tab2:
-    map_mode = st.session_state.map_mode
+    map_left, map_right = st.columns([1.1, 0.9])
 
-    if st.button("📍", key="map_toggle"):
-        st.session_state.map_mode = 1 - st.session_state.map_mode
-        map_mode = st.session_state.map_mode
-
-    lat = 44.0
-    lon = 15.0
-    marker_size = 18 if map_mode == 0 else 26
-    marker_color = "#ff5f8f" if map_mode == 0 else "#ff2d6d"
-
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scattergeo(
-            lon=[lon],
-            lat=[lat],
-            mode="markers+text",
-            text=["❤"],
-            textposition="top center",
-            textfont=dict(size=24, color="#ff5f8f"),
-            hoverinfo="skip",
-            marker=dict(
-                size=marker_size,
-                color=marker_color,
-                line=dict(width=2, color="#ffffff"),
-            ),
+    with map_left:
+        st.markdown(
+            """
+            <div class="panel">
+                <h2>แผนที่หัวใจ</h2>
+                <p>หมุดนี้คือจุดพิเศษที่อยากให้ดูนาน ๆ</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
-    )
-    fig.update_geos(
-        projection_type="natural earth",
-        showland=True,
-        landcolor="#f6e7fb",
-        showocean=True,
-        oceancolor="#fff7fa",
-        showframe=False,
-        showcountries=False,
-        showcoastlines=False,
-        lakecolor="#fff7fa",
-        bgcolor="rgba(0,0,0,0)",
-    )
-    fig.update_layout(
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=460,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-    )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.markdown(
+            """
+            <div class="final">
+                <h3>🌍❤</h3>
+                <p>ปักไว้ตรงนี้เพื่อแทน “ที่ที่อยากอยู่ด้วยนาน ๆ”</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            """
+            <div class="story">
+                <div class="t">หมายเหตุ</div>
+                <div class="d">ถ้าอยากให้เป็นแผนที่จริงแบบ interactive มากขึ้น ค่อยอัปเป็นตัวเต็มได้</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with map_right:
+        if st.button("📍"):
+            st.session_state.memory_index = random.randint(0, len(memories) - 1)
+            st.session_state.spark_count += 1
+
+        st.markdown(
+            card("หมุดหัวใจ", memories[st.session_state.memory_index]),
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            card("ตำแหน่งนี้", tiny_lines[st.session_state.memory_index % len(tiny_lines)]),
+            unsafe_allow_html=True,
+        )
 
 with tab3:
-    nickname = st.text_input(" ", value="ครีม", label_visibility="collapsed")
-    nickname = escape(nickname.strip() or "ครีม")
+    if st.button("สุ่มคำอวยพร"):
+        st.session_state.wish_index = random.randint(0, len(wishes) - 1)
+        st.session_state.spark_count += 1
 
-    note = st.text_area(
-        " ",
-        value="สุขสันต์วันเกิดนะเธอ ขอให้วันนี้เป็นวันที่ดีมาก ๆ แล้วก็มีแต่เรื่องที่ชอบ",
-        height=120,
-        label_visibility="collapsed",
+    if st.button("สุ่มความทรงจำ"):
+        st.session_state.memory_index = random.randint(0, len(memories) - 1)
+        st.session_state.spark_count += 1
+
+    st.markdown(
+        card("คำที่โผล่มา", wishes[st.session_state.wish_index]),
+        unsafe_allow_html=True,
     )
 
-    st.checkbox("💌", key="secret_toggle")
+    st.markdown(
+        card("ความทรงจำที่สุ่มได้", memories[st.session_state.memory_index]),
+        unsafe_allow_html=True,
+    )
 
-    if st.session_state.secret_toggle:
+    st.text_input("ชื่อเล่น", value="ครีม")
+    st.text_area("ข้อความถึงเธอ", value="สุขสันต์วันเกิดนะเธอ ขอให้วันนี้เป็นวันที่ดีมาก ๆ แล้วก็มีแต่เรื่องที่ชอบ", height=120)
+
+    if st.button("เปิดข้อความ"):
+        st.session_state.secret_open = True
+        st.session_state.spark_count += 1
+
+    if st.session_state.secret_open:
         st.markdown(
-            f"""
+            """
             <div class="final">
-                <h3>สุขสันต์วันเกิดนะ {nickname} 💖</h3>
+                <h3>สุขสันต์วันเกิดนะเธอ 💖</h3>
                 <p>
                     ขอให้วันนี้ยิ้มได้เยอะ ๆ<br>
                     กินของอร่อยได้เต็มที่<br>
@@ -610,27 +623,20 @@ with tab3:
         )
 
     st.download_button(
-        "ดาวน์โหลด",
-        data=note,
+        "ดาวน์โหลดข้อความนี้",
+        data="สุขสันต์วันเกิดนะเธอ ขอให้วันนี้เป็นวันที่ดีมาก ๆ และมีแต่เรื่องที่ชอบ",
         file_name="birthday_message.txt",
         mime="text/plain",
         use_container_width=True,
     )
 
 with tab4:
-    if st.button("สุ่มอีกที", key="memory_shuffle"):
-        st.session_state.memory_index = random.randint(0, len(memories) - 1)
+    if st.button("เปิดทั้งหมด"):
+        st.session_state.gift_open = True
+        st.session_state.secret_open = True
         st.session_state.spark_count += 1
-
-    st.markdown(
-        f"""
-        <div class="glass">
-            <div class="gtitle">{memories[st.session_state.memory_index]}</div>
-            <div class="gbody">{tiny_lines[st.session_state.memory_index % len(tiny_lines)]}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        st.balloons()
+        st.snow()
 
     g1, g2, g3, g4 = st.columns(4)
     cards = [
@@ -641,21 +647,12 @@ with tab4:
     ]
     for col, (a, b) in zip([g1, g2, g3, g4], cards):
         with col:
-            st.markdown(
-                f"""
-                <div class="glass" style="min-height:126px;">
-                    <div class="gtitle">{a}</div>
-                    <div class="gbody">{b}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            st.markdown(card(a, b), unsafe_allow_html=True)
 
-    if st.button("เปิดให้หมด", key="final_open"):
-        st.session_state.gift_open = True
-        st.session_state.spark_count += 1
-        st.balloons()
-        st.snow()
+    st.markdown(
+        card("ท้ายสุด", "ขอให้วันนี้ดีแบบที่จำได้ไปนาน ๆ"),
+        unsafe_allow_html=True,
+    )
 
     if st.session_state.gift_open:
         st.markdown(
@@ -663,9 +660,8 @@ with tab4:
             <div class="final">
                 <h3>สุขสันต์วันเกิดนะเธอ 🎂</h3>
                 <p>
-                    ขอให้วันนี้ดีแบบที่จำได้ไปนาน ๆ<br>
-                    ขอให้มีแต่คนใจดีกับเธอ<br>
-                    แล้วก็ขอให้เรื่องดี ๆ มาแบบไม่ต้องรอ
+                    ขอให้วันนี้ดีแบบที่เธอไม่ต้องฝืนยิ้ม<br>
+                    ขอให้มีความสุขเยอะ ๆ แล้วก็จำได้ว่าตัวเองมีค่ามากแค่ไหน
                 </p>
             </div>
             """,
