@@ -1,926 +1,335 @@
 import streamlit as st
 from datetime import date
-from html import escape
 import random
 
-st.set_page_config(
-    page_title="Happy Birthday 🎂",
-    page_icon="🎁",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
+st.set_page_config(page_title="Happy Birthday 🎂", page_icon="🎁", layout="wide", initial_sidebar_state="collapsed")
 
-# -----------------------------
-# DATA
-# -----------------------------
 today = date.today()
+start_date = date(2024, 2, 14)
+days_together = (today - start_date).days
 birthday_this_year = date(today.year, 6, 26)
 next_birthday = birthday_this_year if today <= birthday_this_year else date(today.year + 1, 6, 26)
 days_to_birthday = (next_birthday - today).days
 
+if "page" not in st.session_state:
+    st.session_state.page = "cover"
+if "candles" not in st.session_state:
+    st.session_state.candles = 3
+if "cake" not in st.session_state:
+    st.session_state.cake = {"base": "วานิลลา", "cream": "ครีม", "top": "เชอร์รี"}
+if "step" not in st.session_state:
+    st.session_state.step = 0
+if "clues" not in st.session_state:
+    st.session_state.clues = 0
+if "wish_idx" not in st.session_state:
+    st.session_state.wish_idx = 0
+if "opened" not in st.session_state:
+    st.session_state.opened = False
+if "hearts" not in st.session_state:
+    st.session_state.hearts = 0
+
 wishes = [
     "สุขสันต์วันเกิดนะเธอ 🎂",
-    "ขอให้วันนี้เป็นวันของเธอจริง ๆ",
-    "ยิ้มเยอะ ๆ แล้วก็พักให้เต็มที่",
-    "กินของอร่อยให้สุดไปเลย",
-    "ขอให้ปีนี้มีแต่เรื่องที่ชอบ",
-    "วันนี้ไม่ต้องคิดอะไรเยอะก็ได้",
-    "ขอให้เรื่องหนัก ๆ เบาลงเยอะ ๆ",
-    "ขอให้มีแต่เรื่องน่ารัก ๆ เข้ามา",
+    "ขอให้วันนี้ยิ้มได้ทั้งวัน",
+    "ขอให้ปีนี้ใจดีกับเธอมาก ๆ",
+    "กินของอร่อยให้เต็มที่เลย",
+    "ขอให้ทุกอย่างที่เหนื่อย ค่อย ๆ เบาลง",
 ]
-
 cake_bases = ["ช็อกโกแลต", "วานิลลา", "สตรอว์เบอร์รี"]
-cake_creams = ["ชมพู", "ครีม", "ม่วง", "ฟ้า"]
-cake_toppers = ["เชอร์รี", "สตรอว์เบอร์รี", "คุกกี้", "หัวใจ"]
+cake_creams = ["ครีม", "ชมพู", "ฟ้า"]
+cake_tops = ["เชอร์รี", "สตรอว์เบอร์รี", "หัวใจ"]
 
-gift_lines = [
-    "ขอให้วันนี้ใจดีกับเธอมาก ๆ",
-    "ขอให้เธอมีรอยยิ้มเต็มวัน",
-    "ขอให้เรื่องดี ๆ วิ่งเข้ามาหาเอง",
-    "ขอให้วันเกิดปีนี้น่าจำมากที่สุด",
-]
-
-memory_lines = [
-    "วันที่คุยกันแล้วไม่อยากวางแชท",
-    "วันที่งอนกันนิดหน่อย แต่สุดท้ายก็กลับมาคุย",
-    "วันที่ธรรมดา แต่จำได้ชัด",
-    "วันที่อยู่ด้วยแล้วสบายใจ",
-    "วันที่รู้สึกว่าเธอสำคัญขึ้นเรื่อย ๆ",
-]
-
-tiny_lines = [
-    "เธอทำให้วันธรรมดาดีขึ้น",
-    "บางทีแค่มีเธอก็พอแล้ว",
-    "วันนี้ขอให้ยิ้มเยอะ ๆ",
-    "ของขวัญชิ้นนี้ตั้งใจทำมาก",
-    "ไม่ต้องเยอะ แต่ต้องจริงใจ",
-    "ถ้าวันนี้พิเศษ ก็ให้เป็นเธอ",
-]
-
-nav_pages = ["cover", "cake", "hunt", "heart", "letter"]
-nav_icons = ["🎁", "🎂", "🎮", "💗", "💌"]
-
-# -----------------------------
-# STATE
-# -----------------------------
-defaults = {
-    "page": "cover",
-    "opened": False,
-    "hearts": 0,
-    "wish_index": 0,
-    "memory_index": 0,
-    "spark_count": 0,
-    "candles": 4,
-    "gift_opened": False,
-    "secret_open": False,
-    "mood": 62,
-    "cake_base": "วานิลลา",
-    "cake_cream": "ครีม",
-    "cake_topper": "เชอร์รี",
-    "hunt_round": 0,
-    "hunt_target": random.randint(1, 9),
-    "hunt_msg": "",
-    "heart_round": 0,
-    "heart_target": random.randint(1, 4),
-    "heart_msg": "",
-    "final_open": False,
-    "note_text": "สุขสันต์วันเกิดนะเธอ ขอให้วันนี้เป็นวันที่ดีมาก ๆ แล้วก็มีแต่เรื่องที่ชอบ",
+st.markdown("""
+<style>
+#MainMenu, footer, header {visibility:hidden;}
+.stApp{
+    background:
+        radial-gradient(circle at 15% 10%, rgba(255, 181, 213, .55), transparent 22%),
+        radial-gradient(circle at 85% 18%, rgba(185, 165, 255, .40), transparent 20%),
+        radial-gradient(circle at 50% 90%, rgba(255, 220, 160, .28), transparent 26%),
+        linear-gradient(135deg, #fdeaf1 0%, #f6efff 45%, #fff4df 100%);
+    background-attachment: fixed;
 }
-for k, v in defaults.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
+.block-container{max-width:1200px;padding-top:1rem;padding-bottom:2rem;}
+.box{
+    background:rgba(255,255,255,.78);
+    border:1px solid rgba(126,89,142,.10);
+    border-radius:28px;
+    box-shadow:0 18px 40px rgba(104,70,103,.10);
+    padding:22px;
+    backdrop-filter: blur(10px);
+}
+.hero{text-align:center;margin-bottom:16px;}
+.badge{
+    display:inline-block;padding:7px 14px;border-radius:999px;
+    background:rgba(255,255,255,.85);border:1px solid rgba(126,89,142,.10);
+    color:#8a5e8f;font-weight:800;font-size:.92rem;margin-bottom:12px;
+}
+.title{font-size:clamp(2.1rem,5vw,4rem);font-weight:900;margin:0;color:#5a345f;}
+.sub{max-width:820px;margin:12px auto 0;color:#725b72;line-height:1.75;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;}
+.mini{
+    background:rgba(255,255,255,.80);border:1px solid rgba(126,89,142,.10);
+    border-radius:22px;padding:16px;text-align:center;box-shadow:0 10px 24px rgba(104,70,103,.08);
+}
+.num{font-size:2rem;font-weight:900;color:#6a3f73;line-height:1;}
+.label{margin-top:6px;color:#7b687b;font-size:.92rem;}
+.line{height:1px;background:linear-gradient(90deg, transparent, rgba(126,89,142,.22), transparent);margin:16px 0;}
+h2{margin:0 0 10px 0;color:#5a345f;font-size:1.25rem;}
+p{margin:0;color:#725b72;line-height:1.7;}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+.chip{
+    padding:8px 12px;border-radius:999px;background:linear-gradient(135deg, rgba(255,147,186,.24), rgba(176,124,255,.24));
+    border:1px solid rgba(126,89,142,.10);color:#5f3966;font-weight:700;font-size:.92rem;
+}
+.glow{
+    padding:18px;border-radius:24px;background:rgba(255,255,255,.80);
+    border:1px solid rgba(126,89,142,.10);box-shadow:0 10px 22px rgba(104,70,103,.08);
+}
+.wishline{font-size:1.15rem;font-weight:900;color:#5a345f;line-height:1.6;text-align:center;}
+.cake-stage{
+    position:relative;width:100%;min-height:380px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;
+}
+.plate{
+    position:absolute;bottom:20px;width:min(560px,94%);height:36px;border-radius:999px;
+    background:linear-gradient(180deg,#fff,#ebdeef);box-shadow:0 12px 24px rgba(97,71,102,.12);
+}
+.cake{position:relative;width:min(420px,92vw);height:320px;}
+.layer{
+    position:absolute;left:50%;transform:translateX(-50%);border-radius:28px 28px 18px 18px;box-shadow:0 12px 24px rgba(97,71,102,.18);
+}
+.bottom{bottom:36px;width:280px;height:110px;background:var(--base);}
+.mid{bottom:128px;width:246px;height:84px;background:var(--base);}
+.top{bottom:198px;width:212px;height:66px;background:var(--base);}
+.frost{
+    position:absolute;bottom:240px;left:50%;transform:translateX(-50%);
+    width:226px;height:40px;border-radius:22px 22px 14px 14px;background:var(--cream);
+}
+.candles{
+    position:absolute;bottom:286px;left:50%;transform:translateX(-50%);
+    font-size:1.4rem;letter-spacing:3px;white-space:nowrap;color:#5a345f;
+}
+.topper{
+    position:absolute;bottom:256px;left:50%;transform:translateX(-50%);font-size:2rem;
+}
+.labelcake{
+    position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+    color:#6a3f73;font-weight:800;font-size:.96rem;white-space:nowrap;
+}
+.card{
+    background:rgba(255,255,255,.80);border:1px solid rgba(126,89,142,.10);border-radius:24px;
+    box-shadow:0 10px 22px rgba(104,70,103,.08);padding:16px;height:100%;
+}
+.small{color:#725b72;line-height:1.65;font-size:.96rem;}
+div.stButton > button{
+    width:100%;border-radius:999px;border:0;padding:.82rem 1rem;
+    background:linear-gradient(135deg,#ff7da8,#b07cff);color:white;font-weight:800;
+    box-shadow:0 10px 24px rgba(94,60,97,.18);
+}
+.tabbtn div.stButton > button{margin-top:0}
+.hint{font-size:.94rem;color:#7b687b;}
+</style>
+""", unsafe_allow_html=True)
 
-def goto(page_name: str):
-    st.session_state.page = page_name
-    st.rerun()
-
-def add_heart(n: int = 1):
-    st.session_state.hearts += n
-
-def nav_bar():
-    idx = nav_pages.index(st.session_state.page)
-    cols = st.columns(5)
-    for i, icon in enumerate(nav_icons):
-        with cols[i]:
-            if st.button(icon, key=f"nav_{nav_pages[i]}", use_container_width=True):
-                goto(nav_pages[i])
-    st.progress((idx + 1) / len(nav_pages))
-
-def cake_html(base: str, cream: str, topper: str, candles: int) -> str:
-    base_colors = {
+def cake_html():
+    colors = {
         "ช็อกโกแลต": "#8d5a48",
         "วานิลลา": "#e2c38b",
         "สตรอว์เบอร์รี": "#ff86aa",
     }
-    cream_colors = {
-        "ชมพู": "#ffd1e2",
-        "ครีม": "#fff1c2",
-        "ม่วง": "#d8c9ff",
-        "ฟ้า": "#d6efff",
-    }
-    topper_emoji = {
-        "เชอร์รี": "🍒",
-        "สตรอว์เบอร์รี": "🍓",
-        "คุกกี้": "🍪",
-        "หัวใจ": "💖",
-    }
-    candle_line = " ".join(["🕯️"] * candles) if candles > 0 else "🎂 ✨ 🎂"
-    sprinkle_row = "✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧"
+    creams = {"ครีม": "#fff1c2", "ชมพู": "#ffd1e2", "ฟ้า": "#d6efff"}
+    tops = {"เชอร์รี": "🍒", "สตรอว์เบอร์รี": "🍓", "หัวใจ": "💖"}
+    candle_line = " ".join(["🕯️"] * st.session_state.candles) if st.session_state.candles > 0 else "🎂 ✨ 🎂"
     return f"""
     <div class="cake-stage">
         <div class="plate"></div>
-        <div class="cake" style="--base:{base_colors[base]}; --cream:{cream_colors[cream]};">
-            <div class="cake-candles">{candle_line}</div>
-            <div class="cake-sparkles">{sprinkle_row}</div>
-            <div class="cake-topper">{topper_emoji[topper]}</div>
-
-            <div class="cake-layer cake-top"></div>
-            <div class="cake-layer cake-mid"></div>
-            <div class="cake-layer cake-bottom"></div>
-
-            <div class="cake-frost"></div>
-            <div class="cake-label">{base} • {cream} • {topper}</div>
+        <div class="cake" style="--base:{colors[st.session_state.cake['base']]};--cream:{creams[st.session_state.cake['cream']]}">
+            <div class="candles">{candle_line}</div>
+            <div class="topper">{tops[st.session_state.cake['top']]}</div>
+            <div class="layer top"></div>
+            <div class="layer mid"></div>
+            <div class="layer bottom"></div>
+            <div class="frost"></div>
+            <div class="labelcake">{st.session_state.cake['base']} • {st.session_state.cake['cream']} • {st.session_state.cake['top']}</div>
         </div>
     </div>
     """
 
-# -----------------------------
-# STYLE
-# -----------------------------
-st.markdown(
-    """
-    <style>
-    #MainMenu, footer, header {visibility: hidden;}
+def open_page(page):
+    st.session_state.page = page
 
-    .stApp{
-        background:
-            radial-gradient(circle at 12% 12%, rgba(255, 185, 210, 0.55), transparent 24%),
-            radial-gradient(circle at 88% 14%, rgba(184, 160, 255, 0.45), transparent 22%),
-            radial-gradient(circle at 50% 90%, rgba(255, 224, 169, 0.30), transparent 26%),
-            linear-gradient(135deg, #fde9f1 0%, #f6efff 45%, #fff4df 100%);
-        background-attachment: fixed;
-    }
-
-    .block-container{
-        max-width: 1240px;
-        padding-top: 1rem;
-        padding-bottom: 2.5rem;
-    }
-
-    .card{
-        background: rgba(255,255,255,0.80);
-        border: 1px solid rgba(126, 89, 142, 0.10);
-        border-radius: 28px;
-        box-shadow: 0 18px 40px rgba(104, 70, 103, 0.10);
-        padding: 22px;
-        backdrop-filter: blur(10px);
-    }
-
-    .hero{
-        text-align:center;
-        margin-bottom: 18px;
-    }
-
-    .badge{
-        display:inline-block;
-        padding: 7px 14px;
-        border-radius:999px;
-        background: rgba(255,255,255,0.84);
-        border: 1px solid rgba(126, 89, 142, 0.10);
-        color:#8a5e8f;
-        font-weight:800;
-        font-size: 0.92rem;
-        margin-bottom: 12px;
-    }
-
-    .title{
-        font-size: clamp(2.2rem, 5vw, 4.4rem);
-        font-weight: 900;
-        margin: 0;
-        color: #5a345f;
-        letter-spacing: -0.03em;
-    }
-
-    .sub{
-        max-width: 860px;
-        margin: 12px auto 0 auto;
-        color:#725b72;
-        line-height:1.75;
-        font-size:1rem;
-    }
-
-    .grid3{
-        display:grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap:12px;
-        margin-top: 16px;
-    }
-
-    .mini{
-        background: rgba(255,255,255,0.82);
-        border: 1px solid rgba(126, 89, 142, 0.10);
-        border-radius: 22px;
-        padding: 16px;
-        text-align:center;
-        box-shadow: 0 10px 24px rgba(104, 70, 103, 0.08);
-    }
-
-    .num{
-        font-size: 2rem;
-        font-weight: 900;
-        color: #6a3f73;
-        line-height: 1;
-    }
-
-    .label{
-        margin-top: 6px;
-        color:#7b687b;
-        font-size:0.92rem;
-    }
-
-    .section{
-        margin-top: 18px;
-    }
-
-    .section h2{
-        margin: 0 0 10px 0;
-        color:#5a345f;
-        font-size: 1.25rem;
-    }
-
-    .section p{
-        margin:0;
-        color:#725b72;
-        line-height:1.72;
-    }
-
-    .chiprow{
-        display:flex;
-        flex-wrap:wrap;
-        gap:10px;
-        margin-top:12px;
-    }
-
-    .chip{
-        padding: 8px 12px;
-        border-radius:999px;
-        background: linear-gradient(135deg, rgba(255, 147, 186, 0.24), rgba(176, 124, 255, 0.24));
-        border: 1px solid rgba(126, 89, 142, 0.10);
-        color:#5f3966;
-        font-weight:700;
-        font-size:0.92rem;
-    }
-
-    .glow{
-        padding: 18px;
-        border-radius: 24px;
-        background: rgba(255,255,255,0.78);
-        border: 1px solid rgba(126, 89, 142, 0.10);
-        box-shadow: 0 10px 22px rgba(104, 70, 103, 0.08);
-        height: 100%;
-    }
-
-    .glow h3{
-        margin:0 0 8px 0;
-        color:#5a345f;
-        font-size:1.08rem;
-    }
-
-    .glow .txt{
-        color:#725b72;
-        line-height:1.65;
-        font-size:0.97rem;
-    }
-
-    .wishline{
-        font-size: 1.15rem;
-        font-weight: 900;
-        color:#5a345f;
-        line-height:1.6;
-    }
-
-    .line{
-        height:1px;
-        background: linear-gradient(90deg, transparent, rgba(126,89,142,0.22), transparent);
-        margin: 16px 0;
-    }
-
-    .cake-stage{
-        position: relative;
-        width: 100%;
-        min-height: 430px;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-        margin-top: 8px;
-        overflow: hidden;
-    }
-
-    .plate{
-        position: absolute;
-        bottom: 20px;
-        width: min(620px, 94%);
-        height: 36px;
-        border-radius: 999px;
-        background: linear-gradient(180deg, #fff, #e9dceb);
-        box-shadow: 0 12px 24px rgba(97, 71, 102, 0.12);
-    }
-
-    .cake{
-        position: relative;
-        width: min(460px, 92vw);
-        height: 360px;
-    }
-
-    .cake-layer{
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        border-radius: 30px 30px 18px 18px;
-        box-shadow: 0 12px 24px rgba(97, 71, 102, 0.20);
-        background: var(--base);
-    }
-
-    .cake-bottom{
-        bottom: 36px;
-        width: 300px;
-        height: 118px;
-    }
-
-    .cake-mid{
-        bottom: 134px;
-        width: 266px;
-        height: 92px;
-    }
-
-    .cake-top{
-        bottom: 210px;
-        width: 230px;
-        height: 72px;
-    }
-
-    .cake-frost{
-        position: absolute;
-        bottom: 256px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 246px;
-        height: 44px;
-        border-radius: 24px 24px 14px 14px;
-        background: var(--cream);
-        box-shadow: 0 8px 16px rgba(97, 71, 102, 0.10);
-    }
-
-    .cake-candles{
-        position: absolute;
-        bottom: 302px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 1.55rem;
-        letter-spacing: 3px;
-        white-space: nowrap;
-        color: #5a345f;
-        text-shadow: 0 0 12px rgba(255,255,255,0.7);
-    }
-
-    .cake-topper{
-        position: absolute;
-        bottom: 272px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 2rem;
-    }
-
-    .cake-sparkles{
-        position: absolute;
-        bottom: 188px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 0.95rem;
-        letter-spacing: 8px;
-        color: rgba(255,255,255,0.82);
-    }
-
-    .cake-label{
-        position: absolute;
-        bottom: 8px;
-        left: 50%;
-        transform: translateX(-50%);
-        color: #6a3f73;
-        font-weight: 800;
-        font-size: 0.96rem;
-        text-align: center;
-        white-space: nowrap;
-    }
-
-    .story{
-        padding: 14px;
-        border-radius: 20px;
-        background: rgba(255,255,255,0.78);
-        border: 1px solid rgba(126, 89, 142, 0.10);
-        box-shadow: 0 10px 22px rgba(104, 70, 103, 0.08);
-        margin-top: 12px;
-    }
-
-    .story .t{
-        color: #5a345f;
-        font-weight: 900;
-        margin-bottom: 6px;
-    }
-
-    .story .d{
-        color: #725b72;
-        line-height: 1.65;
-        font-size: 0.95rem;
-    }
-
-    .final{
-        padding: 18px;
-        border-radius: 24px;
-        background: rgba(255,255,255,0.84);
-        border: 1px solid rgba(126, 89, 142, 0.10);
-        box-shadow: 0 12px 24px rgba(104, 70, 103, 0.08);
-        text-align: center;
-    }
-
-    .final h3{
-        margin: 0 0 8px 0;
-        color:#5a345f;
-        font-size: 1.45rem;
-    }
-
-    .final p{
-        color:#725b72;
-        line-height:1.7;
-        margin:0;
-    }
-
-    .mini-btn div.stButton > button{
-        width:100%;
-        border-radius: 999px;
-        border:0;
-        padding: 0.82rem 1rem;
-        background: linear-gradient(135deg, #ff7da8, #b07cff);
-        color:white;
-        font-weight:800;
-        box-shadow: 0 10px 24px rgba(94,60,97,0.18);
-    }
-
-    .round-card{
-        background: rgba(255,255,255,0.80);
-        border: 1px solid rgba(126, 89, 142, 0.10);
-        border-radius: 24px;
-        padding: 18px;
-        box-shadow: 0 10px 22px rgba(104, 70, 103, 0.08);
-    }
-
-    .round-title{
-        color:#5a345f;
-        font-weight:900;
-        margin-bottom:8px;
-    }
-
-    .round-text{
-        color:#725b72;
-        line-height:1.7;
-    }
-
-    .box-grid{
-        display:grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-    }
-
-    .small-grid{
-        display:grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-    }
-
-    .map-card{
-        min-height: 390px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        text-align:center;
-        font-size: 3.5rem;
-        color:#5a345f;
-    }
-
-    @media (max-width: 1100px){
-        .grid3, .box-grid, .small-grid{grid-template-columns: 1fr 1fr;}
-    }
-    @media (max-width: 700px){
-        .grid3, .box-grid, .small-grid{grid-template-columns: 1fr;}
-        .cake-stage{min-height: 380px;}
-        .cake{height: 320px;}
-        .cake-bottom{width: 250px;}
-        .cake-mid{width: 220px;}
-        .cake-top{width: 190px;}
-        .cake-frost{width: 210px;}
-    }
-
-    div.stButton > button{
-        width:100%;
-        border-radius: 999px;
-        border:0;
-        padding: 0.82rem 1rem;
-        background: linear-gradient(135deg, #ff7da8, #b07cff);
-        color:white;
-        font-weight:800;
-        box-shadow: 0 10px 24px rgba(94,60,97,0.18);
-        transition: transform 0.16s ease, box-shadow 0.16s ease;
-    }
-
-    div.stButton > button:hover{
-        transform: translateY(-1px);
-        box-shadow: 0 14px 28px rgba(94,60,97,0.22);
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# -----------------------------
-# DECORATION
-# -----------------------------
-hearts_html = "".join(
-    f'<span style="position:fixed;left:{random.randint(0,100)}%;bottom:-20px;'
-    f'font-size:{random.randint(16,32)}px;opacity:0.22;'
-    f'animation:floatup {random.randint(8,14)}s linear {random.uniform(0,6):.2f}s infinite;">❤</span>'
-    for _ in range(16)
-)
-sparkles_html = "".join(
-    f'<span style="position:fixed;left:{random.randint(0,100)}%;top:{random.randint(0,100)}%;'
-    f'width:{random.randint(8,18)}px;height:{random.randint(8,18)}px;border-radius:999px;'
-    f'background:rgba({random.randint(220,255)}, {random.randint(160,220)}, {random.randint(190,255)}, 0.28);'
-    f'animation:drift {random.randint(5,10)}s ease-in-out {random.uniform(0,4):.2f}s infinite;"></span>'
-    for _ in range(10)
-)
-st.markdown(
-    f"""
-    <style>
-    @keyframes floatup {{
-        0% {{ transform: translateY(0) scale(0.9) rotate(0deg); opacity: 0; }}
-        12% {{ opacity: 0.28; }}
-        100% {{ transform: translateY(-115vh) scale(1.2) rotate(20deg); opacity: 0; }}
-    }}
-    @keyframes drift {{
-        0%,100% {{ transform: translateY(0) translateX(0); }}
-        50% {{ transform: translateY(-12px) translateX(14px); }}
-    }}
-    </style>
-    {hearts_html}
-    {sparkles_html}
-    """,
-    unsafe_allow_html=True,
-)
-
-# -----------------------------
-# NAV
-# -----------------------------
-if st.session_state.page != "cover":
-    nav_bar()
-
-# -----------------------------
-# COVER
-# -----------------------------
 if st.session_state.page == "cover":
-    st.markdown(
-        """
-        <div class="card hero">
-            <div class="badge">🎁 Birthday Game</div>
-            <div class="title">มีของให้เปิด</div>
-            <div class="sub">กดเริ่ม แล้วเล่นไปทีละหน้าจอ</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown(f"""
+    <div class="box hero">
+        <div class="badge">🎁 Birthday Game</div>
+        <div class="title">มีของให้เปิด</div>
+        <div class="sub">กดเริ่ม แล้วเล่นไปทีละหน้าจอ</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown(
-        f"""
-        <div class="grid3">
-            <div class="mini"><div class="num">{days_to_birthday}</div><div class="label">วันถึงวันเกิด</div></div>
-            <div class="mini"><div class="num">{st.session_state.hearts}</div><div class="label">แต้มที่เก็บได้</div></div>
-            <div class="mini"><div class="num">5</div><div class="label">หน้าจอ</div></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown(f"""
+    <div class="grid3">
+        <div class="mini"><div class="num">{days_to_birthday}</div><div class="label">วันถึงวันเกิด</div></div>
+        <div class="mini"><div class="num">{days_together}</div><div class="label">วันที่เริ่มคบ</div></div>
+        <div class="mini"><div class="num">{st.session_state.hearts}</div><div class="label">แต้มที่เก็บได้</div></div>
+    </div>
+    """, unsafe_allow_html=True)
 
     if st.button("เริ่มเล่น"):
-        st.session_state.opened = True
         st.session_state.page = "cake"
-        add_heart()
+        st.session_state.hearts += 1
         st.rerun()
 
     st.stop()
 
-# -----------------------------
-# HEADER
-# -----------------------------
-st.markdown(
-    """
-    <div class="card hero">
-        <div class="badge">🎂 วันเกิดของเธอ</div>
-        <div class="title">สุขสันต์วันเกิดนะเธอ 💖</div>
-        <div class="sub">วันนี้ขอให้เป็นวันของเธอจริง ๆ</div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+st.markdown(f"""
+<div class="box hero">
+    <div class="badge">🎂 วันเกิดของเธอ</div>
+    <div class="title">สุขสันต์วันเกิดนะเธอ 💖</div>
+    <div class="sub">เล่นง่าย ๆ ทีละด่าน แล้วค่อยเปิดของขวัญ</div>
+</div>
+""", unsafe_allow_html=True)
 
-st.markdown(
-    f"""
-    <div class="grid3">
-        <div class="mini"><div class="num">{days_to_birthday}</div><div class="label">วันถึงวันเกิดถัดไป</div></div>
-        <div class="mini"><div class="num">{st.session_state.hearts}</div><div class="label">แต้มที่เก็บได้</div></div>
-        <div class="mini"><div class="num">{st.session_state.spark_count}</div><div class="label">ครั้งที่กดเล่น</div></div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+st.markdown(f"""
+<div class="grid3">
+    <div class="mini"><div class="num">{days_to_birthday}</div><div class="label">วันถึงวันเกิดถัดไป</div></div>
+    <div class="mini"><div class="num">{days_together}</div><div class="label">วันที่เริ่มคบ</div></div>
+    <div class="mini"><div class="num">{st.session_state.hearts}</div><div class="label">แต้มทั้งหมด</div></div>
+</div>
+""", unsafe_allow_html=True)
 
-# -----------------------------
-# PAGE 1: CAKE
-# -----------------------------
-if st.session_state.page == "cake":
-    st.markdown(
-        """
-        <div class="section">
-            <h2>แต่งเค้ก</h2>
-            <p>ปรับให้เค้กเปลี่ยนได้เอง</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+st.markdown('<div class="line"></div>', unsafe_allow_html=True)
 
-    a, b, c, d = st.columns(4)
-    with a:
-        st.selectbox("รส", cake_bases, key="cake_base")
-    with b:
-        st.selectbox("ครีม", cake_creams, key="cake_cream")
-    with c:
-        st.selectbox("หน้าเค้ก", cake_toppers, key="cake_topper")
-    with d:
-        st.slider("เทียน", 0, 8, key="candles")
+tabs = st.tabs(["🎂 เค้ก", "🎮 เกม", "💌 อวยพร", "🎁 จบ"])
 
+with tabs[0]:
+    st.markdown('<div class="small">แต่งเค้กให้ถูกใจ แล้วกดเสิร์ฟ</div>', unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     with c1:
-        if st.button("สุ่มหน้าเค้ก"):
-            st.session_state.cake_base = random.choice(cake_bases)
-            st.session_state.cake_cream = random.choice(cake_creams)
-            st.session_state.cake_topper = random.choice(cake_toppers)
-            st.session_state.candles = random.randint(0, 8)
-            add_heart()
-            st.rerun()
+        st.session_state.cake["base"] = st.selectbox("รส", cake_bases, index=cake_bases.index(st.session_state.cake["base"]))
     with c2:
-        if st.button("เพิ่มเทียน"):
-            st.session_state.candles = min(8, st.session_state.candles + 1)
-            add_heart()
-            st.rerun()
+        st.session_state.cake["cream"] = st.selectbox("ครีม", cake_creams, index=cake_creams.index(st.session_state.cake["cream"]))
     with c3:
-        if st.button("ต่อไป"):
-            st.session_state.page = "hunt"
-            st.rerun()
+        st.session_state.cake["top"] = st.selectbox("หน้าเค้ก", cake_tops, index=cake_tops.index(st.session_state.cake["top"]))
 
-    st.markdown(
-        cake_html(
-            st.session_state.cake_base,
-            st.session_state.cake_cream,
-            st.session_state.cake_topper,
-            st.session_state.candles,
-        ),
-        unsafe_allow_html=True,
-    )
+    st.session_state.candles = st.slider("เทียน", 0, 8, st.session_state.candles)
+    st.markdown(cake_html(), unsafe_allow_html=True)
 
-    st.markdown(
-        f"""
-        <div class="final">
-            <h3>{random.choice(wishes)}</h3>
-            <p>{random.choice(gift_lines)}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    if st.button("สุ่มเค้ก"):
+        st.session_state.cake["base"] = random.choice(cake_bases)
+        st.session_state.cake["cream"] = random.choice(cake_creams)
+        st.session_state.cake["top"] = random.choice(cake_tops)
+        st.session_state.candles = random.randint(0, 8)
+        st.session_state.hearts += 1
+        st.rerun()
 
-# -----------------------------
-# PAGE 2: BOX HUNT
-# -----------------------------
-elif st.session_state.page == "hunt":
-    st.markdown(
-        """
-        <div class="section">
-            <h2>กล่องของขวัญ</h2>
-            <p>หากล่องที่ใช่ 3 รอบ</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    if st.button("เสิร์ฟเค้ก"):
+        st.session_state.hearts += 2
+        st.session_state.wish_idx = random.randint(0, len(wishes) - 1)
+        st.balloons()
+        st.session_state.page = "game"
+        st.rerun()
 
-    st.markdown(
-        f"""
-        <div class="round-card">
-            <div class="round-title">รอบ {st.session_state.hunt_round + 1} / 3</div>
-            <div class="round-text">{st.session_state.hunt_msg or "เลือกกล่องได้เลย"}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    found = False
-    for row in range(3):
+with tabs[1]:
+    st.markdown('<div class="small">เกมสั้น ๆ ไม่ยาก แต่เล่นได้หลายรอบ</div>', unsafe_allow_html=True)
+    st.session_state.step = st.select_slider("ด่าน", options=[1, 2, 3], value=st.session_state.step or 1)
+    if st.session_state.step == 1:
+        st.write("เลือกกล่องที่คิดว่าใช่")
         cols = st.columns(3)
-        for col_idx in range(3):
-            box_num = row * 3 + col_idx + 1
-            with cols[col_idx]:
-                if st.button(f"🎁 {box_num}", key=f"box_{st.session_state.hunt_round}_{box_num}"):
-                    if box_num == st.session_state.hunt_target:
-                        st.session_state.hunt_round += 1
-                        st.session_state.hunt_msg = "เจอแล้ว"
-                        st.session_state.hearts += 2
-                        st.session_state.hunt_target = random.randint(1, 9)
-                        add_heart()
-                        found = True
-                        if st.session_state.hunt_round >= 3:
-                            st.session_state.gift_opened = True
-                        st.rerun()
-                    else:
-                        st.session_state.hunt_msg = "ยังไม่ใช่"
-                        st.session_state.spark_count += 1
-                        st.rerun()
+        pick = None
+        for i, col in enumerate(cols, start=1):
+            with col:
+                if st.button(f"🎁 {i}", key=f"box{i}"):
+                    pick = i
+        target = 2
+        if pick is not None:
+            if pick == target:
+                st.success("เจอแล้ว!")
+                st.session_state.clues += 1
+                st.session_state.hearts += 1
+            else:
+                st.info("ลองอีกใบ")
+    elif st.session_state.step == 2:
+        st.write("จับคู่รูปแบบ")
+        choice = st.radio("อันไหนเป็นหัวใจ", ["✨", "🎈", "💖"], horizontal=True)
+        if st.button("เช็ก"):
+            if choice == "💖":
+                st.success("ถูกแล้ว")
+                st.session_state.clues += 1
+                st.session_state.hearts += 1
+            else:
+                st.warning("ยังไม่ใช่")
+    else:
+        st.write("กดให้ครบ 5 ครั้ง")
+        if st.button("กด"):
+            st.session_state.clues += 1
+            st.session_state.hearts += 1
+        st.write(f"แต้ม: {st.session_state.clues}/5")
 
-    if found:
-        st.success("ต่อได้")
-
-    if st.session_state.hunt_round >= 3:
-        st.balloons()
-        st.markdown(
-            """
-            <div class="final">
-                <h3>ผ่านแล้ว</h3>
-                <p>กดต่อไปเพื่อไปหน้าต่อไป</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("ต่อไป"):
-            st.session_state.page = "heart"
-            st.rerun()
-
-    elif st.button("ข้ามไป"):
-        st.session_state.page = "heart"
+    if st.button("ไปต่อ"):
+        st.session_state.page = "wish"
         st.rerun()
 
-# -----------------------------
-# PAGE 3: HEART FINDER
-# -----------------------------
-elif st.session_state.page == "heart":
-    st.markdown(
-        """
-        <div class="section">
-            <h2>หาใจ</h2>
-            <p>เลือกให้ถูก 4 รอบ</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+with tabs[2]:
+    if st.button("สุ่มคำอวยพร"):
+        st.session_state.wish_idx = random.randint(0, len(wishes) - 1)
+        st.session_state.hearts += 1
 
-    st.markdown(
-        f"""
-        <div class="round-card">
-            <div class="round-title">รอบ {st.session_state.heart_round + 1} / 4</div>
-            <div class="round-text">{st.session_state.heart_msg or "เลือกหัวใจ"}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown(f"""
+    <div class="card">
+        <div class="wishline">{wishes[st.session_state.wish_idx]}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    heart_options = ["✨", "🎈", "🌷", "💖"]
-    target = st.session_state.heart_target
-    if st.session_state.heart_round < 4:
-        order = heart_options[:]
-        random.shuffle(order)
-        if "💖" not in order:
-            order[target - 1] = "💖"
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="small">ข้อความสั้น ๆ ที่อยากให้จำ</div>', unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="card">
+        <div class="small">{random.choice(gift_notes)}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        rows = [order[:2], order[2:]]
-        for r, row in enumerate(rows):
-            cols = st.columns(2)
-            for i, icon in enumerate(row):
-                pos = r * 2 + i + 1
-                with cols[i]:
-                    if st.button(icon, key=f"heart_{st.session_state.heart_round}_{pos}"):
-                        if icon == "💖":
-                            st.session_state.heart_round += 1
-                            st.session_state.heart_msg = "ใช่แล้ว"
-                            st.session_state.hearts += 1
-                            st.session_state.heart_target = random.randint(1, 4)
-                            add_heart()
-                            if st.session_state.heart_round >= 4:
-                                st.session_state.final_open = True
-                            st.rerun()
-                        else:
-                            st.session_state.heart_msg = "ลองใหม่"
-                            st.rerun()
-
-    if st.session_state.heart_round >= 4:
+    note = st.text_input("เขียนชื่อเล่น", value="ครีม")
+    msg = st.text_area("ข้อความถึงเธอ", value="สุขสันต์วันเกิดนะเธอ ขอให้วันนี้เป็นวันที่ดีมาก ๆ", height=110)
+    if st.button("เปิดข้อความ"):
+        st.session_state.opened = True
         st.balloons()
-        st.markdown(
-            """
-            <div class="final">
-                <h3>ครบแล้ว</h3>
-                <p>ไปเปิดจดหมายได้</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("ต่อไป"):
-            st.session_state.page = "letter"
-            st.rerun()
+        st.session_state.hearts += 2
 
-    elif st.button("ต่อไป"):
-        st.session_state.page = "letter"
-        st.rerun()
-
-# -----------------------------
-# PAGE 4: LETTER
-# -----------------------------
-elif st.session_state.page == "letter":
-    st.markdown(
-        """
-        <div class="section">
-            <h2>จดหมาย</h2>
-            <p>เปิดได้เลย</p>
+    if st.session_state.opened:
+        st.markdown(f"""
+        <div class="final">
+            <h2>สุขสันต์วันเกิดนะ {note} 🎂</h2>
+            <p>{msg}<br><br>ขอให้วันนี้ยิ้มได้เยอะ ๆ แล้วก็มีแต่เรื่องที่ชอบ</p>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """, unsafe_allow_html=True)
 
-    if st.button("เปิด"):
+with tabs[3]:
+    if st.button("เปิดของขวัญ"):
         st.session_state.final_open = True
         st.session_state.hearts += 3
         st.balloons()
         st.snow()
-        st.rerun()
 
     if st.session_state.final_open:
-        st.markdown(
-            f"""
-            <div class="final">
-                <h3>สุขสันต์วันเกิดนะเธอ 🎂</h3>
-                <p>
-                    ขอให้วันนี้ดีแบบที่เธอไม่ต้องฝืนยิ้ม<br>
-                    ขอให้มีความสุขเยอะ ๆ แล้วก็จำได้ว่าตัวเองมีค่ามากแค่ไหน<br><br>
-                    วันเกิดปีนี้ ขอให้เป็นปีที่ใจดีมาก ๆ กับเธอ
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.text_input("ชื่อเล่น", value="ครีม", key="nickname_input")
-    st.text_area("ข้อความถึงเธอ", key="note_text", height=120)
-
-    left, right = st.columns(2)
-    with left:
-        st.download_button(
-            "ดาวน์โหลดข้อความ",
-            data=st.session_state.note_text,
-            file_name="birthday_message.txt",
-            mime="text/plain",
-            use_container_width=True,
-        )
-    with right:
-        if st.button("เปิดอีก"):
-            st.session_state.final_open = True
-            st.balloons()
-            st.rerun()
-
-    st.markdown(
-        f"""
-        <div class="grid3">
-            <div class="mini"><div class="num">{st.session_state.hearts}</div><div class="label">แต้มทั้งหมด</div></div>
-            <div class="mini"><div class="num">{days_to_birthday}</div><div class="label">วันถึงวันเกิด</div></div>
-            <div class="mini"><div class="num">1</div><div class="label">คนสำคัญ</div></div>
+        st.markdown(f"""
+        <div class="final">
+            <h2>สุขสันต์วันเกิดนะเธอ 🎁</h2>
+            <p>
+                ขอให้วันนี้ดีแบบที่เธอไม่ต้องฝืนยิ้ม<br>
+                ขอให้มีความสุขเยอะ ๆ แล้วก็จำได้ว่าตัวเองมีค่ามากแค่ไหน<br><br>
+                วันเกิดปีนี้ ขอให้เป็นปีที่ใจดีกับเธอมาก ๆ
+            </p>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """, unsafe_allow_html=True)
 
-# -----------------------------
-# FOOTER RESET / EXTRA
-# -----------------------------
-st.markdown(
-    """
-    <div class="section">
-        <div class="chiprow">
-            <span class="chip">🎂 วันเกิด</span>
-            <span class="chip">🎁 ของขวัญ</span>
-            <span class="chip">🎮 เกม</span>
-            <span class="chip">💌 จดหมาย</span>
-        </div>
+    st.markdown(f"""
+    <div class="grid3">
+        <div class="mini"><div class="num">{st.session_state.hearts}</div><div class="label">แต้มรวม</div></div>
+        <div class="mini"><div class="num">{days_to_birthday}</div><div class="label">วันถึงวันเกิด</div></div>
+        <div class="mini"><div class="num">1</div><div class="label">คนสำคัญ</div></div>
     </div>
-    """,
-    unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
+
+if st.session_state.page != "cover":
+    st.markdown("<div class='small'>กดแท็บด้านบนเพื่อสลับหน้าจอ</div>", unsafe_allow_html=True)
