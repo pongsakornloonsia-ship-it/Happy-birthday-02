@@ -758,4 +758,169 @@ elif st.session_state.page == "hunt":
         st.markdown(
             """
             <div class="final">
-                <h3>ผ่
+                <h3>ผ่านแล้ว</h3>
+                <p>กดต่อไปเพื่อไปหน้าต่อไป</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("ต่อไป"):
+            st.session_state.page = "heart"
+            st.rerun()
+
+    elif st.button("ข้ามไป"):
+        st.session_state.page = "heart"
+        st.rerun()
+
+# -----------------------------
+# PAGE 3: HEART FINDER
+# -----------------------------
+elif st.session_state.page == "heart":
+    st.markdown(
+        """
+        <div class="section">
+            <h2>หาใจ</h2>
+            <p>เลือกให้ถูก 4 รอบ</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f"""
+        <div class="round-card">
+            <div class="round-title">รอบ {st.session_state.heart_round + 1} / 4</div>
+            <div class="round-text">{st.session_state.heart_msg or "เลือกหัวใจ"}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    heart_options = ["✨", "🎈", "🌷", "💖"]
+    target = st.session_state.heart_target
+    if st.session_state.heart_round < 4:
+        order = heart_options[:]
+        random.shuffle(order)
+        if "💖" not in order:
+            order[target - 1] = "💖"
+
+        rows = [order[:2], order[2:]]
+        for r, row in enumerate(rows):
+            cols = st.columns(2)
+            for i, icon in enumerate(row):
+                pos = r * 2 + i + 1
+                with cols[i]:
+                    if st.button(icon, key=f"heart_{st.session_state.heart_round}_{pos}"):
+                        if icon == "💖":
+                            st.session_state.heart_round += 1
+                            st.session_state.heart_msg = "ใช่แล้ว"
+                            st.session_state.hearts += 1
+                            st.session_state.heart_target = random.randint(1, 4)
+                            add_heart()
+                            if st.session_state.heart_round >= 4:
+                                st.session_state.final_open = True
+                            st.rerun()
+                        else:
+                            st.session_state.heart_msg = "ลองใหม่"
+                            st.rerun()
+
+    if st.session_state.heart_round >= 4:
+        st.balloons()
+        st.markdown(
+            """
+            <div class="final">
+                <h3>ครบแล้ว</h3>
+                <p>ไปเปิดจดหมายได้</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("ต่อไป"):
+            st.session_state.page = "letter"
+            st.rerun()
+
+    elif st.button("ต่อไป"):
+        st.session_state.page = "letter"
+        st.rerun()
+
+# -----------------------------
+# PAGE 4: LETTER
+# -----------------------------
+elif st.session_state.page == "letter":
+    st.markdown(
+        """
+        <div class="section">
+            <h2>จดหมาย</h2>
+            <p>เปิดได้เลย</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if st.button("เปิด"):
+        st.session_state.final_open = True
+        st.session_state.hearts += 3
+        st.balloons()
+        st.snow()
+        st.rerun()
+
+    if st.session_state.final_open:
+        st.markdown(
+            f"""
+            <div class="final">
+                <h3>สุขสันต์วันเกิดนะเธอ 🎂</h3>
+                <p>
+                    ขอให้วันนี้ดีแบบที่เธอไม่ต้องฝืนยิ้ม<br>
+                    ขอให้มีความสุขเยอะ ๆ แล้วก็จำได้ว่าตัวเองมีค่ามากแค่ไหน<br><br>
+                    วันเกิดปีนี้ ขอให้เป็นปีที่ใจดีมาก ๆ กับเธอ
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.text_input("ชื่อเล่น", value="ครีม", key="nickname_input")
+    st.text_area("ข้อความถึงเธอ", key="note_text", height=120)
+
+    left, right = st.columns(2)
+    with left:
+        st.download_button(
+            "ดาวน์โหลดข้อความ",
+            data=st.session_state.note_text,
+            file_name="birthday_message.txt",
+            mime="text/plain",
+            use_container_width=True,
+        )
+    with right:
+        if st.button("เปิดอีก"):
+            st.session_state.final_open = True
+            st.balloons()
+            st.rerun()
+
+    st.markdown(
+        f"""
+        <div class="grid3">
+            <div class="mini"><div class="num">{st.session_state.hearts}</div><div class="label">แต้มทั้งหมด</div></div>
+            <div class="mini"><div class="num">{days_to_birthday}</div><div class="label">วันถึงวันเกิด</div></div>
+            <div class="mini"><div class="num">1</div><div class="label">คนสำคัญ</div></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# -----------------------------
+# FOOTER RESET / EXTRA
+# -----------------------------
+st.markdown(
+    """
+    <div class="section">
+        <div class="chiprow">
+            <span class="chip">🎂 วันเกิด</span>
+            <span class="chip">🎁 ของขวัญ</span>
+            <span class="chip">🎮 เกม</span>
+            <span class="chip">💌 จดหมาย</span>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+    )
